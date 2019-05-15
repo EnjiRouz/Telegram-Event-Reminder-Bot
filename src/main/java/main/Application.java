@@ -8,6 +8,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.telegram.telegrambots.ApiContextInitializer;
 
 import java.time.LocalDateTime;
 
@@ -22,6 +23,8 @@ public class Application {
     }
 
     public static void main(String[] args) {
+        ApiContextInitializer.init();
+
         SpringApplication.run(Application.class, args);
     }
 
