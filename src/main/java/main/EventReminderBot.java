@@ -1,6 +1,9 @@
 package main;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.google.common.collect.Iterables;
+import main.entity.Event;
+import main.serivce.EventService;
+import main.serivce.ParticipantsService;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -13,6 +16,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class EventReminderBot extends TelegramLongPollingBot{
@@ -20,6 +24,14 @@ public class EventReminderBot extends TelegramLongPollingBot{
     //@Value("${EventReminderBot.botUsername}")
     private String botUsername = "event_registration_reminder_bot";
     private String botToken = "764767249:AAESgCyWEc05tNNfJXZgol6UFNo1ZBgMI2A";
+
+    private final EventService eventService;
+    private final ParticipantsService participantsService;
+
+    public EventReminderBot(EventService eventService, ParticipantsService participantsService) {
+        this.eventService = eventService;
+        this.participantsService = participantsService;
+    }
 
     @Override
     public String getBotToken() {
@@ -193,11 +205,7 @@ public class EventReminderBot extends TelegramLongPollingBot{
      * */
     private List<String> loadEventList(){
         // TODO написать логику по работе с БД, с помощью которой мы получим количество мероприятий
-        List<String> events=new ArrayList<>();
-        events.add("Event 1");
-        events.add("Event 2");
-        events.add("Event 3");
-        events.add("Event 4");
+        List<String> events= eventService.findAll().stream().map(Event::getName).collect(Collectors.toList());
         return events;
     }
 

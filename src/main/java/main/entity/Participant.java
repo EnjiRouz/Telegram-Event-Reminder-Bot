@@ -15,7 +15,7 @@ public class Participant {
     @JoinColumn(name = "event_id")
     private Event event;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "form_id")
     private Form form;
 
