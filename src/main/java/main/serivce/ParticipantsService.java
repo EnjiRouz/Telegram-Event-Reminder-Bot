@@ -17,6 +17,9 @@ public class ParticipantsService {
     }
 
     public Participant createParticipant(Participant participant) {
+        if (participant.getUuid() == null) {
+            participant.setUuid(UUID.randomUUID());
+        }
         return participantsRepository.save(participant);
     }
 
