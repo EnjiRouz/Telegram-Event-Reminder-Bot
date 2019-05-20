@@ -19,14 +19,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
-public class EventReminderBot extends TelegramLongPollingBot{
-
-    //@Value("${EventReminderBot.botUsername}")
+public class EventReminderBot extends TelegramLongPollingBot {
     private String botUsername = "event_registration_reminder_bot";
     private String botToken = "764767249:AAESgCyWEc05tNNfJXZgol6UFNo1ZBgMI2A";
 
     private final EventService eventService;
     private final ParticipantsService participantsService;
+
+    private int registrationStage;
 
     public EventReminderBot(EventService eventService, ParticipantsService participantsService) {
         this.eventService = eventService;
@@ -64,7 +64,6 @@ public class EventReminderBot extends TelegramLongPollingBot{
             }
         }
     }
-
     /**
      * Выполнение команды ботом из списка возможных
      * @param receivedMessage   полученное ботом сообщение
@@ -73,97 +72,7 @@ public class EventReminderBot extends TelegramLongPollingBot{
     private void executeCommand(Message receivedMessage, String command) {
         RegistrationForm userData= new RegistrationForm();
         SendMessage messageToSend=sendMsg(receivedMessage, "Hello ^.^");
-        switch (command) {
-            case "/start":
-            case "/menu":
-                showMenu(messageToSend,"Show New Events","Help");
-                break;
-
-            case "/shownewevents":
-            case "Show New Events":
-            case "Get Back To New Events":
-                if (loadEventList().isEmpty()){
-                    messageToSend=sendMsg(receivedMessage, "Sorry, but I don't have any "+
-                            "information on the nearest events yet :(\n" +
-                            "But I promise to find it out ^.^");
-                }
-                else {
-                    messageToSend=sendMsg(receivedMessage, "Here you are ^.^");
-                    showEventList(messageToSend, loadEventList());
-                }
-                break;
-
-            case "Register For The Event":
-                // TODO описать логику для работы с БД по ПОЛУЧЕНИЮ данных по форме регистрации
-                messageToSend=sendMsg(receivedMessage, "I need to know your name to register you for"+
-                        " the event ^.^\nEnter your name like the example below:\nJohn Doe");
-                showMenu(messageToSend,"Confirm Name");
-                break;
-
-            case "Confirm Name":
-                // TODO описать логику для работы с БД по ОТПРАВКЕ данных из форме регистрации
-                userData.setName(receivedMessage.getText());
-                userData.setTgChatId(receivedMessage.getChatId().toString());
-                userData.setTgUsername(receivedMessage.getChat().getUserName());
-                if(userData.getName().isEmpty()){
-                    messageToSend=sendMsg(receivedMessage, "You wrote your name wrong!"+
-                            "\nI need to know your name to register you for"+
-                            " the event ^.^\nEnter your name like the example below:\nJohn Doe");
-                    showMenu(messageToSend,"Confirm Name");
-                }else {
-                    messageToSend = sendMsg(receivedMessage, "Okay, now I need to know your email"+
-                            " to register you for the event ^.^\n"+
-                            "Enter your email like the example below:\njohn.doe@mail.com");
-                    showMenu(messageToSend, "Confirm Email");
-                }
-                break;
-
-            case "Confirm Email":
-                userData.setEmail(receivedMessage.getText());
-                if(userData.getEmail().isEmpty()){
-                    messageToSend=sendMsg(receivedMessage, "You wrote your email wrong!"+
-                            "\nI need to know your email to register you for"+
-                            " the event ^.^\nEnter your email like the example below:\njohn.doe@mail.com");
-                    showMenu(messageToSend,"Confirm Name");
-                }else {
-                    messageToSend = sendMsg(receivedMessage, "Okay, we've done! ^.^\n"+
-                            "Do you want me to remind you about the event?");
-                    showMenu(messageToSend,"Remind Me","Don't Remind Me");
-                }
-                break;
-
-            case "Remind Me":
-                // TODO реализовать функцию напоминания о мероприятии (надо учитывать часовой пояс)
-                userData.setSendNotification(true);
-                userData.sendRegistrationForm();
-                messageToSend = sendMsg(receivedMessage, "Okay, I'll send you a reminder ^.^");
-                showMenu(messageToSend,"Show New Events","Help");
-                break;
-
-            case "Don't Remind Me":
-                userData.setSendNotification(false);
-                userData.sendRegistrationForm();
-                messageToSend=sendMsg(receivedMessage, "Okay, I won't remind you about the event ^.^");
-                showMenu(messageToSend,"Show New Events","Help");
-                break;
-
-            case "Help":
-                messageToSend=sendMsg(receivedMessage, "1. Select the event you want to attend.\n"+
-                        "2. Enter the data required for registration.\n"+
-                        "3. Confirm that you want to be notified.");
-                break;
-            default:
-                messageToSend=sendMsg(receivedMessage, "I don't know how to answer that yet ^.^");
-                for (String eventName : loadEventList()) {
-                    if (command.equals(eventName)) {
-                        messageToSend=sendMsg(receivedMessage, "I found some information ^.^");
-                        showMenu(messageToSend,"Register For The Event","Get Back To New Events","Help");
-                        // TODO реализовать отображение данных о выбраннх мероприятиях (загрузить из БД)
-                        break;
-                    }
-                }
-                break;
-        }
+        messageToSend = findCommand(receivedMessage, command, userData, messageToSend);
         try {
             execute(messageToSend);
         } catch (TelegramApiException e) {
@@ -171,6 +80,168 @@ public class EventReminderBot extends TelegramLongPollingBot{
         }
     }
 
+    /**
+     * @param receivedMessage       полученное ботом сообщение
+     * @param command               искомая команда
+     * @param userData              информация о пользователе для заполнения формы регистрации
+     * @param messageToSend         сообщение, которое будет отправлено
+     **/
+    private SendMessage findCommand(Message receivedMessage, String command,
+                                    RegistrationForm userData, SendMessage messageToSend) {
+        switch (command) {
+            case "/start":
+            case "/menu":
+                registrationStage=0;
+                showMenu(messageToSend,"Show New Events","Help");
+                break;
+
+            case "/shownewevents":
+            case "Show New Events":
+            case "Get Back To New Events":
+                registrationStage=0;
+                messageToSend = showEventsNamesIfPossible(receivedMessage);
+                break;
+
+            case "Register For The Event":
+                // TODO описать логику для работы с БД по ПОЛУЧЕНИЮ данных по форме регистрации
+                messageToSend=sendMsg(receivedMessage, "I need to know your name to register you for"+
+                        " the event ^.^\nEnter your name like the example below:\nJohn Doe");
+                showMenu(messageToSend,"Get Back To New Events","Help");
+                registrationStage=1;
+                break;
+
+            case "Remind Me":
+                // TODO реализовать функцию напоминания о мероприятии (надо учитывать часовой пояс)
+                messageToSend = isRemindingApplied(receivedMessage, userData, true,
+                        "Okay, I'll send you a reminder ^.^");
+                break;
+
+            case "Don't Remind Me":
+                messageToSend = isRemindingApplied(receivedMessage, userData, false,
+                        "Okay, I won't remind you about the event ^.^");
+                break;
+
+            case "Help":
+                messageToSend = showInstruction(receivedMessage);
+                break;
+            default:
+                messageToSend=sendMsg(receivedMessage, "I don't know how to answer that yet ^.^");
+                for (String eventName : loadEventList()) {
+                    if (command.equals(eventName)) {
+                        messageToSend = showEventInfoIfPossible(receivedMessage);
+                        break;
+                    }
+                }
+                if(registrationStage < 3 && registrationStage>0)
+                    messageToSend = getUserRegistrationData(receivedMessage, userData, messageToSend);
+                break;
+        }
+        return messageToSend;
+    }
+
+    /**
+     * Загрузка информации о мероприятии (описания) и отправление ее пользователю
+     * @param receivedMessage       полученное ботом сообщение
+     * */
+    private SendMessage showEventInfoIfPossible(Message receivedMessage) {
+        SendMessage messageToSend;
+        messageToSend=sendMsg(receivedMessage, event.getDescription());
+        showMenu(messageToSend,"Register For The Event","Get Back To New Events","Help");
+        return messageToSend;
+    }
+
+    /**
+     * Получение ФИО и email от пользователя
+     * @param receivedMessage       полученное ботом сообщение
+     * @param userData              информация о пользователе для заполнения формы регистрации
+     * @param messageToSend         сообщение, которое будет отправлено
+     **/
+    private SendMessage getUserRegistrationData(Message receivedMessage,
+                                                RegistrationForm userData, SendMessage messageToSend) {
+        switch (registrationStage) {
+            case 1:
+                userData.setName(receivedMessage.getText());
+                if (userData.getName().isEmpty()) {
+                    messageToSend = sendMsg(receivedMessage, "You wrote your name wrong!" +
+                            "\nI need to know your name to register you for" +
+                            " the event ^.^\nEnter your name like the example below:\nJohn Doe");
+                    registrationStage = 1;
+                } else {
+                    messageToSend = sendMsg(receivedMessage, "Okay, now I need to know your email" +
+                            " to register you for the event ^.^\n" +
+                            "Enter your email like the example below:\njohn.doe@mail.com");
+                    registrationStage = 2;
+                }
+                break;
+            case 2:
+                userData.setEmail(receivedMessage.getText());
+                if (userData.getEmail().isEmpty()) {
+                    messageToSend = sendMsg(receivedMessage, "You wrote your email wrong!" +
+                            "\nI need to know your email to register you for" +
+                            " the event ^.^\nEnter your email like the example below:\njohn.doe@mail.com");
+                    registrationStage = 2;
+                } else {
+                    messageToSend = sendMsg(receivedMessage, "Okay, we've done! ^.^\n" +
+                            "Do you want me to remind you about the event?");
+                    showMenu(messageToSend, "Remind Me", "Don't Remind Me");
+                    registrationStage = 3;
+                }
+                break;
+        }
+        return messageToSend;
+    }
+
+    /**
+     * Отправка формы в БД и подтверждение отвпраления напоминания пользователю
+     * @param receivedMessage   полученное ботом сообщение
+     * @param userData          информация о пользователе для заполнения формы регистрации
+     * @param isApplied         опция отправления уведомления (true - напоминание будет отправлено)
+     * @param textToSend        сообщение бота в ответ на действие пользователя
+     **/
+    private SendMessage isRemindingApplied(Message receivedMessage, RegistrationForm userData,
+                                           boolean isApplied, String textToSend) {
+        SendMessage messageToSend;
+        if (registrationStage == 3) {
+            userData.setSendNotification(isApplied);
+            userData.setTgChatId(receivedMessage.getChatId().toString());
+            userData.setTgUsername(receivedMessage.getChat().getUserName());
+            userData.sendRegistrationForm();
+            messageToSend = sendMsg(receivedMessage, textToSend);
+        } else {
+            messageToSend = sendMsg(receivedMessage, "You're smart, but I'm well trained ^.^");
+        }
+        showMenu(messageToSend, "Show New Events", "Help");
+        registrationStage = 0;
+        return messageToSend;
+    }
+
+    /**
+     * Создание меню с выбором мероприятий или отправка сообщения об их отсутствии
+     * @param receivedMessage   полученное ботом сообщение
+     **/
+    private SendMessage showEventsNamesIfPossible(Message receivedMessage) {
+        SendMessage messageToSend;
+        if (loadEventList().isEmpty()){
+            messageToSend=sendMsg(receivedMessage, "Sorry, but I don't have any "+
+                    "information on the nearest events yet :(\n" +
+                    "But I promise to find it out ^.^");
+        }
+        else {
+            messageToSend=sendMsg(receivedMessage, "Here you are ^.^");
+            showMenu(messageToSend, loadEventList().toArray(new String[0]));
+        }
+        return messageToSend;
+    }
+
+    /**
+     * Загрузка списка мероприятий из БД
+     * @return      список мероприятий
+     * */
+    private List<String> loadEventList(){
+        List<String> events;
+        events= eventService.findAll().stream().map(Event::getName).collect(Collectors.toList());
+        return events;
+    }
 
     /**
      * Создание меню c заданными кнопками
@@ -178,10 +249,6 @@ public class EventReminderBot extends TelegramLongPollingBot{
      * @param options           названия кнопок, которые будут созданы
      **/
     private void showMenu (SendMessage messageToSend, String... options){
-        somthing(messageToSend, options);
-    }
-
-    private void somthing(SendMessage messageToSend, String[] options) {
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         messageToSend.setReplyMarkup(keyboardMarkup);
         keyboardMarkup.setSelective(true);
@@ -200,35 +267,16 @@ public class EventReminderBot extends TelegramLongPollingBot{
     }
 
     /**
-     * Загрузка списка мероприятий из БД
-     * @return      список мероприятий
-     * */
-    private List<String> loadEventList(){
-        // TODO написать логику по работе с БД, с помощью которой мы получим количество мероприятий
-        List<String> events= eventService.findAll().stream().map(Event::getName).collect(Collectors.toList());
-        return events;
-    }
-
-    /**
-     * Вывод списка доступных для регистрации мероприятий
-     * @param events    список названий мероприятий
+     * Отправка в качестве ответного сообщения инструкции по использованию бота
+     * @param receivedMessage   полученное ботом сообщение
      **/
-    private void showEventList (SendMessage messageToSend, List<String> events){
-        ReplyKeyboardMarkup keyboardMarkup=new ReplyKeyboardMarkup();
-        messageToSend.setReplyMarkup(keyboardMarkup);
-        keyboardMarkup.setSelective(true);
-        keyboardMarkup.setResizeKeyboard(true);
-        keyboardMarkup.setOneTimeKeyboard(false);
-
-        List<KeyboardRow> keyboardRows=new ArrayList<>();
-        KeyboardRow firstKeyBoardRow= new KeyboardRow();
-
-        for (String eventName : events) {
-            firstKeyBoardRow.add(new KeyboardButton(eventName));
-        }
-
-        keyboardRows.add(firstKeyBoardRow);
-        keyboardMarkup.setKeyboard(keyboardRows);
+    private SendMessage showInstruction(Message receivedMessage) {
+        SendMessage messageToSend;
+        messageToSend=sendMsg(receivedMessage,
+                "1. Select the event you want to attend.\n"+
+                        "2. Enter the data required for registration.\n"+
+                        "3. Confirm that you want to be notified.");
+        return messageToSend;
     }
 
     /**

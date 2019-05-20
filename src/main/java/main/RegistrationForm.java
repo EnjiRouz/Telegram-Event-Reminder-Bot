@@ -45,8 +45,7 @@ public class RegistrationForm {
     }
 
     void setEmail(String email) {
-        //if(isEmailValid(email)) this.email = email;
-        this.email = email;
+        if(isEmailValid(email)) this.email = email;
     }
 
     public String getTgUsername() {
