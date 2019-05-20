@@ -23,6 +23,18 @@ public class Participant {
     private String name;
 
     @Column
+    private String email;
+
+    @Column
+    private String tgUsername;
+
+    @Column
+    private String tgChatId;
+
+    @Column
+    private boolean sendNotification;
+
+    @Column
     private String formData;
 
     @Column
@@ -74,5 +86,37 @@ public class Participant {
 
     public void setFormCompletionDateTime(LocalDateTime formCompletionDateTime) {
         this.formCompletionDateTime = formCompletionDateTime;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getTgUsername() {
+        return tgUsername;
+    }
+
+    public void setTgUsername(String tgUsername) {
+        this.tgUsername = tgUsername;
+    }
+
+    public String getTgChatId() {
+        return tgChatId;
+    }
+
+    public void setTgChatId(String tgChatId) {
+        this.tgChatId = tgChatId;
+    }
+
+    public boolean isSendNotification() {
+        return sendNotification;
+    }
+
+    public void setSendNotification(boolean sendNotification) {
+        this.sendNotification = sendNotification;
     }
 }
