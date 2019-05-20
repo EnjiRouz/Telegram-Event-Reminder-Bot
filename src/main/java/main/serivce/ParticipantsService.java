@@ -12,7 +12,7 @@ public class ParticipantsService {
         this.participantsRepository = participantsRepository;
     }
 
-    public void  createParticipant(Participant participant) {
-        participantsRepository.save(participant);
+    public Participant  createParticipant(Participant participant) {
+        return participantsRepository.save(participant);
     }
 }
