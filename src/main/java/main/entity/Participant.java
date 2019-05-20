@@ -69,7 +69,7 @@ public class Participant {
     }
 
     public void setName(String name) {
-        this.name = name;
+        if(isNameValid(name)) this.name = name;
     }
 
     public String getFormData() {
@@ -93,7 +93,7 @@ public class Participant {
     }
 
     public void setEmail(String email) {
-        this.email = email;
+        if(isEmailValid(email)) this.email = email;
     }
 
     public String getTgUsername() {
@@ -118,5 +118,25 @@ public class Participant {
 
     public void setSendNotification(boolean sendNotification) {
         this.sendNotification = sendNotification;
+    }
+
+    /**
+     * Проверка ФИО на корректность (настколько это возможно на этапе сбора информации)
+     * @param name  анализируемый c помощью регулярных выражений набор символов (текст)
+     * @return      true, если name может быть корректным
+     */
+    private static boolean isNameValid(String name) {
+        final String EMAIL_REGEX="^[\\w+\\s*]*\\w{2,40}$";
+        return name.matches(EMAIL_REGEX);
+    }
+
+    /**
+     * Проверка email на корректность (настколько это возможно на этапе сбора информации)
+     * @param email  анализируемый c помощью регулярных выражений набор символов (email)
+     * @return      true, если email может быть корректным
+     */
+    private static boolean isEmailValid(String email) {
+        final String EMAIL_REGEX="^.+@.{1,40}$";
+        return email.matches(EMAIL_REGEX);
     }
 }

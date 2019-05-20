@@ -1,6 +1,7 @@
 package main;
 
 import main.entity.Event;
+import main.entity.Participant;
 import main.serivce.EventService;
 import main.serivce.ParticipantsService;
 import org.springframework.stereotype.Component;
@@ -69,7 +70,7 @@ public class EventReminderBot extends TelegramLongPollingBot {
      * @param command            название обрабатываемой команды
      **/
     private void executeCommand(Message receivedMessage, String command) {
-        RegistrationForm userData= new RegistrationForm();
+        Participant userData= new Participant();
         SendMessage messageToSend=sendMsg(receivedMessage, "Hello ^.^");
         messageToSend = findCommand(receivedMessage, command, userData, messageToSend);
         try {
@@ -86,7 +87,7 @@ public class EventReminderBot extends TelegramLongPollingBot {
      * @param messageToSend         сообщение, которое будет отправлено
      **/
     private SendMessage findCommand(Message receivedMessage, String command,
-                                    RegistrationForm userData, SendMessage messageToSend) {
+                                    Participant userData, SendMessage messageToSend) {
         switch (command) {
             case "/start":
             case "/menu":
@@ -156,7 +157,7 @@ public class EventReminderBot extends TelegramLongPollingBot {
      * @param messageToSend         сообщение, которое будет отправлено
      **/
     private SendMessage getUserRegistrationData(Message receivedMessage,
-                                                RegistrationForm userData, SendMessage messageToSend) {
+                                                Participant userData, SendMessage messageToSend) {
         switch (registrationStage) {
             case 1:
                 userData.setName(receivedMessage.getText());
@@ -197,16 +198,15 @@ public class EventReminderBot extends TelegramLongPollingBot {
      * @param isApplied         опция отправления уведомления (true - напоминание будет отправлено)
      * @param textToSend        сообщение бота в ответ на действие пользователя
      **/
-    private SendMessage isRemindingApplied(Message receivedMessage, RegistrationForm userData,
+    private SendMessage isRemindingApplied(Message receivedMessage, Participant userData,
                                            boolean isApplied, String textToSend) {
         SendMessage messageToSend;
         if (registrationStage == 3) {
             receivedMessage.getLocation().getLatitude();
-
             userData.setSendNotification(isApplied);
             userData.setTgChatId(receivedMessage.getChatId().toString());
             userData.setTgUsername(receivedMessage.getChat().getUserName());
-            userData.sendRegistrationForm();
+            participantsService.createParticipant(userData);
             messageToSend = sendMsg(receivedMessage, textToSend);
         } else {
             messageToSend = sendMsg(receivedMessage, "You're smart, but I'm well trained ^.^");
