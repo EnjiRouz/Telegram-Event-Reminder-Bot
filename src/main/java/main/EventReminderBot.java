@@ -1,6 +1,5 @@
 package main;
 
-import com.google.common.collect.Iterables;
 import main.entity.Event;
 import main.serivce.EventService;
 import main.serivce.ParticipantsService;
@@ -128,7 +127,7 @@ public class EventReminderBot extends TelegramLongPollingBot {
                 messageToSend=sendMsg(receivedMessage, "I don't know how to answer that yet ^.^");
                 for (String eventName : loadEventList()) {
                     if (command.equals(eventName)) {
-                        messageToSend = showEventInfoIfPossible(receivedMessage);
+                        messageToSend = showEventInfoIfPossible(receivedMessage, eventName);
                         break;
                     }
                 }
@@ -143,9 +142,9 @@ public class EventReminderBot extends TelegramLongPollingBot {
      * Загрузка информации о мероприятии (описания) и отправление ее пользователю
      * @param receivedMessage       полученное ботом сообщение
      * */
-    private SendMessage showEventInfoIfPossible(Message receivedMessage) {
+    private SendMessage showEventInfoIfPossible(Message receivedMessage,String eventName) {
         SendMessage messageToSend;
-        messageToSend=sendMsg(receivedMessage, event.getDescription());
+        messageToSend=sendMsg(receivedMessage, eventService.findAllByName(eventName).get(0).getDescription());
         showMenu(messageToSend,"Register For The Event","Get Back To New Events","Help");
         return messageToSend;
     }
@@ -202,6 +201,8 @@ public class EventReminderBot extends TelegramLongPollingBot {
                                            boolean isApplied, String textToSend) {
         SendMessage messageToSend;
         if (registrationStage == 3) {
+            receivedMessage.getLocation().getLatitude();
+
             userData.setSendNotification(isApplied);
             userData.setTgChatId(receivedMessage.getChatId().toString());
             userData.setTgUsername(receivedMessage.getChat().getUserName());
