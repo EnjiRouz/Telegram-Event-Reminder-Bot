@@ -11,6 +11,7 @@ import org.springframework.context.event.EventListener;
 import org.telegram.telegrambots.ApiContextInitializer;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @SpringBootApplication
 public class Application {
@@ -24,7 +25,6 @@ public class Application {
 
     public static void main(String[] args) {
         ApiContextInitializer.init();
-
         SpringApplication.run(Application.class, args);
     }
 
@@ -34,11 +34,11 @@ public class Application {
         form.setFields("shortString, longString, email");
 
         Event event = new Event();
-        event.setName("some event");
+        event.setName("Deadline");
         event.setOpen(true);
-        event.setDescription("bla bla bla");
+        event.setDescription("OMG! Today is the day when you should show me to everyone at 17:40 ^.^");
         event.setForm(form);
-        event.setDateTime(LocalDateTime.now());
+        event.setDateTime(LocalDateTime.now().atZone(ZoneId.of("UTC+5")).toLocalDateTime().plusHours(2));
 
         eventService.createEvent(event);
     }
