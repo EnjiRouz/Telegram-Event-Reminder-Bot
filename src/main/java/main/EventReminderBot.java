@@ -98,7 +98,7 @@ public class EventReminderBot extends TelegramLongPollingBot {
                 if(!receiversQueue.isEmpty()) {
                     for (Participant receiver : receiversQueue) {
                         if (receiver.isSendNotification()) {
-                            sendReminderMsg(receiver.getTgChatId(), eventName + "is today at "
+                            sendReminderMsg(receiver.getTgChatId(), eventName + " is today at "
                                     + eventTime.format(DateTimeFormatter.ofPattern("HH:mm")));
                         }
                     }
