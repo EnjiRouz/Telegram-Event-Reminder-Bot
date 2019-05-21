@@ -92,13 +92,15 @@ public class EventReminderBot extends TelegramLongPollingBot {
             if (reminderTime.equals(now)) {
                 System.out.println("notification should be sent now "+now);
                 receiversQueue=participantsService.findParticipantsOfEvent(event);
-                for (Participant receiver :receiversQueue) {
-                    System.out.println("Is notification applied? "+receiver.isSendNotification());
-                    if (receiver.isSendNotification()) {
-                        sendReminderMsg(receiver.getTgChatId(), eventName + "is today at" + eventTime);
-                        System.out.println(eventTime + "Message should be sent");
+                if(!receiversQueue.isEmpty()) {
+                    for (Participant receiver : receiversQueue) {
+                        System.out.println("Is notification applied? " + receiver.isSendNotification());
+                        if (receiver.isSendNotification()) {
+                            sendReminderMsg(receiver.getTgChatId(), eventName + "is today at" + eventTime);
+                            System.out.println(eventTime + "Message should be sent");
+                        }
                     }
-                }
+                }else System.out.println("receiversQueue.isEmpty()");
             }
         }
         /*
