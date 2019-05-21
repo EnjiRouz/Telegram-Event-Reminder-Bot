@@ -202,7 +202,6 @@ public class EventReminderBot extends TelegramLongPollingBot {
                                            boolean isApplied, String textToSend) {
         SendMessage messageToSend;
         if (registrationStage == 3) {
-            receivedMessage.getLocation().getLatitude();
             userData.setSendNotification(isApplied);
             userData.setTgChatId(receivedMessage.getChatId().toString());
             userData.setTgUsername(receivedMessage.getChat().getUserName());
