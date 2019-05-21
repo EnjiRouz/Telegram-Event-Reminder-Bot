@@ -4,6 +4,8 @@ import main.entity.Event;
 import main.entity.Participant;
 import main.serivce.EventService;
 import main.serivce.ParticipantsService;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -14,10 +16,16 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@EnableScheduling
 @Component
 public class EventReminderBot extends TelegramLongPollingBot {
     private String botUsername = "event_registration_reminder_bot";
@@ -64,6 +72,39 @@ public class EventReminderBot extends TelegramLongPollingBot {
             }
         }
     }
+
+    /**
+     *
+     *
+     **/
+    @Scheduled(fixedRate = 60000)
+    public void remindAboutEvent() {
+        LocalDateTime eventTime;
+        Event event;
+        List<Participant> receiversQueue;
+
+        for (String eventName : loadEventList()) {
+            event=eventService.findAllByName(eventName).get(0);
+            eventTime=event.getDateTime();
+            if (eventTime.equals(LocalDateTime.now().plusMinutes(61))) {
+                receiversQueue=participantsService.findParticipantsOfEvent(event);
+                for (Participant receiver :receiversQueue) {
+                    if (receiver.isSendNotification())
+                        sendReminderMsg(receiver.getTgChatId(), eventName + "is today at" + eventTime);
+                }
+            }
+        }
+        /*
+        foreach event in events
+            if event is today
+                EventName=getEventName
+                EventTime=getEventTime
+                addToReceiversQueue(participant.getChatId)
+                foreach queueMember in addToReceiversQueue
+                    sendMsg(EventName+"is today at"+EventTime) using chatId
+        */
+    }
+
     /**
      * Выполнение команды ботом из списка возможных
      * @param receivedMessage   полученное ботом сообщение
@@ -103,7 +144,6 @@ public class EventReminderBot extends TelegramLongPollingBot {
                 break;
 
             case "Register For The Event":
-                // TODO описать логику для работы с БД по ПОЛУЧЕНИЮ данных по форме регистрации
                 messageToSend=sendMsg(receivedMessage, "I need to know your name to register you for"+
                         " the event ^.^\nEnter your name like the example below:\nJohn Doe");
                 showMenu(messageToSend,"Get Back To New Events","Help");
@@ -277,6 +317,23 @@ public class EventReminderBot extends TelegramLongPollingBot {
                         "2. Enter the data required for registration.\n"+
                         "3. Confirm that you want to be notified.");
         return messageToSend;
+    }
+
+    /**
+     * Отправка напоминания в чат
+     * @param chatId            чат, в который нужно отправить сообщение
+     * @param textToSend        текст, которй должен быть отправлен
+     **/
+    private void sendReminderMsg(String chatId, String textToSend) {
+        SendMessage messageToSend=new SendMessage();
+        messageToSend.enableMarkdown(true);
+        messageToSend.setChatId(chatId);
+        messageToSend.setText(textToSend);
+        try {
+            execute(messageToSend);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
