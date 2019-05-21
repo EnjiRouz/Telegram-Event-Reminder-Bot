@@ -41,6 +41,15 @@ public class Application {
         event.setDateTime(LocalDateTime.now().atZone(ZoneId.of("Asia/Karachi")).toLocalDateTime().plusHours(2));
 
         eventService.createEvent(event);
+
+        Event event1 = new Event();
+        event1.setName("Hackaton");
+        event1.setOpen(true);
+        event1.setDescription("Code me a friend ^.^");
+        event1.setForm(form);
+        event1.setDateTime(LocalDateTime.now().atZone(ZoneId.of("Asia/Karachi")).toLocalDateTime().plusHours(2));
+
+        eventService.createEvent(event1);
     }
 
 }

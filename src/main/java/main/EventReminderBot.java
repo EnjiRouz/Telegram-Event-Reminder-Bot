@@ -75,23 +75,25 @@ public class EventReminderBot extends TelegramLongPollingBot {
     }
 
     /**
-     *
-     *
+     * Отправление напоминаний тем, кто его запрашивал при регистрации
      **/
     @Scheduled(fixedRate = 60000)
     public void remindAboutEvent() {
         LocalDateTime eventTime,reminderTime,now;
         Event event;
         List<Participant> receiversQueue;
+
         for (String eventName : loadEventList()) {
             event=eventService.findAllByName(eventName).get(0);
             eventTime=event.getDateTime().withSecond(0).withNano(0);
             reminderTime=eventTime.minusMinutes(118);
             now=LocalDateTime.now().atZone(ZoneId.of("Asia/Karachi")).toLocalDateTime().withSecond(0).withNano(0);
             System.out.println(eventTime+"  reminder should be sent at "+reminderTime);
+
             if (reminderTime.equals(now)) {
                 System.out.println("notification should be sent now "+now);
                 receiversQueue=participantsService.findParticipantsOfEvent(event);
+
                 if(!receiversQueue.isEmpty()) {
                     for (Participant receiver : receiversQueue) {
                         System.out.println("Is notification applied? " + receiver.isSendNotification());
@@ -103,15 +105,6 @@ public class EventReminderBot extends TelegramLongPollingBot {
                 }else System.out.println("receiversQueue.isEmpty()");
             }
         }
-        /*
-        foreach event in events
-            if event is today
-                EventName=getEventName
-                EventTime=getEventTime
-                addToReceiversQueue(participant.getChatId)
-                foreach queueMember in addToReceiversQueue
-                    sendMsg(EventName+"is today at"+EventTime) using chatId
-        */
     }
 
     /**
