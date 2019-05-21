@@ -90,11 +90,12 @@ public class EventReminderBot extends TelegramLongPollingBot {
             eventTime=event.getDateTime().withSecond(0).withNano(0);
             reminderTime=eventTime.minusMinutes(119);
             now=LocalDateTime.now().atZone(ZoneId.of("Asia/Karachi")).toLocalDateTime().withSecond(0).withNano(0);
-            System.out.println("Event time is "+eventTime+"  reminder should be sent at "+reminderTime);
+
+            if (reminderTime.isAfter(now))
+                System.out.println("Event time is "+eventTime+"  reminder should be sent at "+reminderTime);
 
             if (reminderTime.equals(now)) {
                 receiversQueue=participantsService.findParticipantsOfEvent(event);
-
                 if(!receiversQueue.isEmpty()) {
                     for (Participant receiver : receiversQueue) {
                         if (receiver.isSendNotification()) {
