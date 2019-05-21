@@ -171,6 +171,7 @@ public class EventReminderBot extends TelegramLongPollingBot {
                 for (String eventName : loadEventList()) {
                     if (command.equals(eventName)) {
                         userData.setEvent(eventService.findAllByName(eventName).get(0));
+                        userData.setForm(eventService.findAllByName(eventName).get(0).getForm());
                         messageToSend = showEventInfoIfPossible(receivedMessage, eventName);
                         break;
                     }
