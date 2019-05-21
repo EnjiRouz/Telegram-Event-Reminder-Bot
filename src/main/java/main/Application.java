@@ -42,14 +42,17 @@ public class Application {
 
         eventService.createEvent(event);
 
-/*        Event event1 = new Event();
+        Form form1 = new Form();
+        form.setFields("shortString, longString, email");
+
+        Event event1 = new Event();
         event1.setName("Hackaton");
         event1.setOpen(true);
         event1.setDescription("Code me a friend ^.^");
-        event1.setForm(form);
+        event1.setForm(form1);
         event1.setDateTime(LocalDateTime.now().atZone(ZoneId.of("Asia/Karachi")).toLocalDateTime().plusHours(2));
 
-        eventService.createEvent(event1);*/
+        eventService.createEvent(event1);
     }
 
 }
