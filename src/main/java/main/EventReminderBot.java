@@ -80,14 +80,16 @@ public class EventReminderBot extends TelegramLongPollingBot {
      **/
     @Scheduled(fixedRate = 5000)
     public void remindAboutEvent() {
-        LocalDateTime eventTime;
+        LocalDateTime eventTime,reminderTime,now;
         Event event;
         List<Participant> receiversQueue;
         for (String eventName : loadEventList()) {
             event=eventService.findAllByName(eventName).get(0);
-            eventTime=event.getDateTime();
+            eventTime=event.getDateTime().withSecond(0).withNano(0);
+            reminderTime=eventTime.minusMinutes(61);
+            now=LocalDateTime.now().atZone(ZoneId.of("UTC+5")).toLocalDateTime().withSecond(0).withNano(0);
             System.out.println(eventTime+"IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII");
-            if (eventTime.equals(LocalDateTime.now().atZone(ZoneId.of("UTC+5")).toLocalDateTime().plusMinutes(61))) {
+            if (reminderTime.equals(now)) {
                 receiversQueue=participantsService.findParticipantsOfEvent(event);
                 for (Participant receiver :receiversQueue) {
                     if (receiver.isSendNotification()) {
