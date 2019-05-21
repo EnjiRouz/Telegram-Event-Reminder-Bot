@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -89,18 +90,16 @@ public class EventReminderBot extends TelegramLongPollingBot {
             eventTime=event.getDateTime().withSecond(0).withNano(0);
             reminderTime=eventTime.minusMinutes(119);
             now=LocalDateTime.now().atZone(ZoneId.of("Asia/Karachi")).toLocalDateTime().withSecond(0).withNano(0);
-            System.out.println(eventTime+"  reminder should be sent at "+reminderTime);
+            System.out.println("Event time is "+eventTime+"  reminder should be sent at "+reminderTime);
 
             if (reminderTime.equals(now)) {
-                System.out.println("notification should be sent now "+now);
                 receiversQueue=participantsService.findParticipantsOfEvent(event);
 
                 if(!receiversQueue.isEmpty()) {
                     for (Participant receiver : receiversQueue) {
-                        System.out.println("Is notification applied? " + receiver.isSendNotification());
                         if (receiver.isSendNotification()) {
-                            sendReminderMsg(receiver.getTgChatId(), eventName + "is today at" + eventTime);
-                            System.out.println(eventTime + "Message should be sent");
+                            sendReminderMsg(receiver.getTgChatId(), eventName + "is today at "
+                                    + eventTime.format(DateTimeFormatter.ofPattern("HH:mm")));
                         }
                     }
                 }else System.out.println("receiversQueue.isEmpty()");
