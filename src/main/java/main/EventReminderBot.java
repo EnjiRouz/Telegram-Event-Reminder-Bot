@@ -78,7 +78,7 @@ public class EventReminderBot extends TelegramLongPollingBot {
      *
      *
      **/
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 60000)
     public void remindAboutEvent() {
         LocalDateTime eventTime,reminderTime,now;
         Event event;
@@ -93,6 +93,7 @@ public class EventReminderBot extends TelegramLongPollingBot {
                 System.out.println("notification should be sent now "+now);
                 receiversQueue=participantsService.findParticipantsOfEvent(event);
                 for (Participant receiver :receiversQueue) {
+                    System.out.println("Is notification applied? "+receiver.isSendNotification());
                     if (receiver.isSendNotification()) {
                         sendReminderMsg(receiver.getTgChatId(), eventName + "is today at" + eventTime);
                         System.out.println(eventTime + "Message should be sent");
