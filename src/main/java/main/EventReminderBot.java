@@ -20,6 +20,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -86,7 +87,7 @@ public class EventReminderBot extends TelegramLongPollingBot {
         for (String eventName : loadEventList()) {
             event=eventService.findAllByName(eventName).get(0);
             eventTime=event.getDateTime();
-            if (eventTime.equals(LocalDateTime.now().minusHours(2))) {
+            if (eventTime.equals(LocalDateTime.now().atZone(ZoneId.of("UTC+5")).toLocalDateTime().plusMinutes(61))) {
                 receiversQueue=participantsService.findParticipantsOfEvent(event);
                 for (Participant receiver :receiversQueue) {
                     if (receiver.isSendNotification())
