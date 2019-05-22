@@ -1,19 +1,14 @@
 package main;
 
 import main.entity.Event;
-import main.entity.Form;
-import main.repository.EventsRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
+import main.serivce.EventService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import main.serivce.EventService;
 
 import javax.validation.Valid;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -30,7 +25,7 @@ public class EventController {
         return eventService.findAll();
     }
 
-    @PostMapping("/questions")
+    @PostMapping("/events")
     public Event createEvent(@Valid @RequestBody Event event) {
         return eventService.createEvent(event);
     }
