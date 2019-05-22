@@ -151,7 +151,6 @@ public class EventReminderBot extends TelegramLongPollingBot {
                 break;
 
             case "Remind Me":
-                // TODO реализовать функцию напоминания о мероприятии (надо учитывать часовой пояс)
                 messageToSend = isRemindingApplied(receivedMessage, true,
                         "Okay, I'll send you a reminder ^.^");
                 break;
