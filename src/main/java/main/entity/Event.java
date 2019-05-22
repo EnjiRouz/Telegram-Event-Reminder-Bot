@@ -7,6 +7,19 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "events")
 public class Event {
+
+    public Event() {
+        isOpen = true;
+    }
+
+    public Event(Form form, String name, String description, LocalDateTime dateTime) {
+        this.form = form;
+        this.name = name;
+        this.description = description;
+        this.dateTime = dateTime;
+        isOpen = true;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

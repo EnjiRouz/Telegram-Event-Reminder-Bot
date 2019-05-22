@@ -38,9 +38,21 @@ public class Application {
         event.setOpen(true);
         event.setDescription("OMG! Today is the day when you should show me to everyone at 17:40 ^.^");
         event.setForm(form);
-        event.setDateTime(LocalDateTime.now().atZone(ZoneId.of("UTC+5")).toLocalDateTime().plusHours(2));
+        event.setDateTime(LocalDateTime.now().atZone(ZoneId.of("Asia/Karachi")).toLocalDateTime().plusHours(2));
 
         eventService.createEvent(event);
+
+        Form form1 = new Form();
+        form.setFields("shortString, longString, email");
+
+        Event event1 = new Event();
+        event1.setName("Hackaton");
+        event1.setOpen(true);
+        event1.setDescription("Code me a friend ^.^");
+        event1.setForm(form1);
+        event1.setDateTime(LocalDateTime.now().atZone(ZoneId.of("Asia/Karachi")).toLocalDateTime().plusHours(2));
+
+        eventService.createEvent(event1);
     }
 
 }

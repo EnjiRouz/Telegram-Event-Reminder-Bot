@@ -4,6 +4,8 @@ import main.entity.Event;
 import main.entity.Participant;
 import main.serivce.EventService;
 import main.serivce.ParticipantsService;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -14,10 +16,18 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@EnableScheduling
 @Component
 public class EventReminderBot extends TelegramLongPollingBot {
     private String botUsername = "event_registration_reminder_bot";
@@ -27,6 +37,7 @@ public class EventReminderBot extends TelegramLongPollingBot {
     private final ParticipantsService participantsService;
 
     private int registrationStage;
+    private Participant userData= new Participant();
 
     public EventReminderBot(EventService eventService, ParticipantsService participantsService) {
         this.eventService = eventService;
@@ -64,15 +75,47 @@ public class EventReminderBot extends TelegramLongPollingBot {
             }
         }
     }
+
+    /**
+     * Отправление напоминаний тем, кто его запрашивал при регистрации
+     **/
+    @Scheduled(fixedRate = 60000)
+    public void remindAboutEvent() {
+        LocalDateTime eventTime,reminderTime,now;
+        Event event;
+        List<Participant> receiversQueue;
+
+        for (String eventName : loadEventList()) {
+            event=eventService.findAllByName(eventName).get(0);
+            eventTime=event.getDateTime().withSecond(0).withNano(0);
+            reminderTime=eventTime.minusMinutes(119);
+            now=LocalDateTime.now().atZone(ZoneId.of("Asia/Karachi")).toLocalDateTime().withSecond(0).withNano(0);
+
+            if (reminderTime.isAfter(now))
+                System.out.println("Event time is "+eventTime+"  reminder should be sent at "+reminderTime);
+
+            if (reminderTime.equals(now)) {
+                receiversQueue=participantsService.findParticipantsOfEvent(event);
+                if(!receiversQueue.isEmpty()) {
+                    for (Participant receiver : receiversQueue) {
+                        if (receiver.isSendNotification()) {
+                            sendReminderMsg(receiver.getTgChatId(), eventName + " is today at "
+                                    + eventTime.format(DateTimeFormatter.ofPattern("HH:mm")));
+                        }
+                    }
+                }else System.out.println("receiversQueue.isEmpty()");
+            }
+        }
+    }
+
     /**
      * Выполнение команды ботом из списка возможных
      * @param receivedMessage   полученное ботом сообщение
      * @param command            название обрабатываемой команды
      **/
     private void executeCommand(Message receivedMessage, String command) {
-        Participant userData= new Participant();
         SendMessage messageToSend=sendMsg(receivedMessage, "Hello ^.^");
-        messageToSend = findCommand(receivedMessage, command, userData, messageToSend);
+        messageToSend = findCommand(receivedMessage, command, messageToSend);
         try {
             execute(messageToSend);
         } catch (TelegramApiException e) {
@@ -83,11 +126,9 @@ public class EventReminderBot extends TelegramLongPollingBot {
     /**
      * @param receivedMessage       полученное ботом сообщение
      * @param command               искомая команда
-     * @param userData              информация о пользователе для заполнения формы регистрации
      * @param messageToSend         сообщение, которое будет отправлено
      **/
-    private SendMessage findCommand(Message receivedMessage, String command,
-                                    Participant userData, SendMessage messageToSend) {
+    private SendMessage findCommand(Message receivedMessage, String command,SendMessage messageToSend) {
         switch (command) {
             case "/start":
             case "/menu":
@@ -103,7 +144,6 @@ public class EventReminderBot extends TelegramLongPollingBot {
                 break;
 
             case "Register For The Event":
-                // TODO описать логику для работы с БД по ПОЛУЧЕНИЮ данных по форме регистрации
                 messageToSend=sendMsg(receivedMessage, "I need to know your name to register you for"+
                         " the event ^.^\nEnter your name like the example below:\nJohn Doe");
                 showMenu(messageToSend,"Get Back To New Events","Help");
@@ -112,12 +152,12 @@ public class EventReminderBot extends TelegramLongPollingBot {
 
             case "Remind Me":
                 // TODO реализовать функцию напоминания о мероприятии (надо учитывать часовой пояс)
-                messageToSend = isRemindingApplied(receivedMessage, userData, true,
+                messageToSend = isRemindingApplied(receivedMessage, true,
                         "Okay, I'll send you a reminder ^.^");
                 break;
 
             case "Don't Remind Me":
-                messageToSend = isRemindingApplied(receivedMessage, userData, false,
+                messageToSend = isRemindingApplied(receivedMessage, false,
                         "Okay, I won't remind you about the event ^.^");
                 break;
 
@@ -128,12 +168,14 @@ public class EventReminderBot extends TelegramLongPollingBot {
                 messageToSend=sendMsg(receivedMessage, "I don't know how to answer that yet ^.^");
                 for (String eventName : loadEventList()) {
                     if (command.equals(eventName)) {
+                        userData.setEvent(eventService.findAllByName(eventName).get(0));
+                        userData.setForm(eventService.findAllByName(eventName).get(0).getForm());
                         messageToSend = showEventInfoIfPossible(receivedMessage, eventName);
                         break;
                     }
                 }
                 if(registrationStage < 3 && registrationStage>0)
-                    messageToSend = getUserRegistrationData(receivedMessage, userData, messageToSend);
+                    messageToSend = getUserRegistrationData(receivedMessage, messageToSend);
                 break;
         }
         return messageToSend;
@@ -153,11 +195,9 @@ public class EventReminderBot extends TelegramLongPollingBot {
     /**
      * Получение ФИО и email от пользователя
      * @param receivedMessage       полученное ботом сообщение
-     * @param userData              информация о пользователе для заполнения формы регистрации
      * @param messageToSend         сообщение, которое будет отправлено
      **/
-    private SendMessage getUserRegistrationData(Message receivedMessage,
-                                                Participant userData, SendMessage messageToSend) {
+    private SendMessage getUserRegistrationData(Message receivedMessage, SendMessage messageToSend) {
         switch (registrationStage) {
             case 1:
                 userData.setName(receivedMessage.getText());
@@ -194,12 +234,10 @@ public class EventReminderBot extends TelegramLongPollingBot {
     /**
      * Отправка формы в БД и подтверждение отвпраления напоминания пользователю
      * @param receivedMessage   полученное ботом сообщение
-     * @param userData          информация о пользователе для заполнения формы регистрации
      * @param isApplied         опция отправления уведомления (true - напоминание будет отправлено)
      * @param textToSend        сообщение бота в ответ на действие пользователя
      **/
-    private SendMessage isRemindingApplied(Message receivedMessage, Participant userData,
-                                           boolean isApplied, String textToSend) {
+    private SendMessage isRemindingApplied(Message receivedMessage, boolean isApplied, String textToSend) {
         SendMessage messageToSend;
         if (registrationStage == 3) {
             userData.setSendNotification(isApplied);
@@ -277,6 +315,23 @@ public class EventReminderBot extends TelegramLongPollingBot {
                         "2. Enter the data required for registration.\n"+
                         "3. Confirm that you want to be notified.");
         return messageToSend;
+    }
+
+    /**
+     * Отправка напоминания в чат
+     * @param chatId            чат, в который нужно отправить сообщение
+     * @param textToSend        текст, которй должен быть отправлен
+     **/
+    private void sendReminderMsg(String chatId, String textToSend) {
+        SendMessage messageToSend=new SendMessage();
+        messageToSend.enableMarkdown(true);
+        messageToSend.setChatId(chatId);
+        messageToSend.setText(textToSend);
+        try {
+            execute(messageToSend);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
