@@ -8,6 +8,21 @@ import java.util.UUID;
 @Entity
 @Table(name = "participant")
 public class Participant {
+
+    public Participant() {
+        sendNotification = false;
+    }
+
+    public Participant(String name, String tgChatId, Event event, String email) {
+
+        this.name = name;
+        this.tgChatId = tgChatId;
+        this.event = event;
+        this.email = email;
+        form = event.getForm();
+        sendNotification = false;
+    }
+
     @Id
     private UUID uuid;
 
